@@ -1,6 +1,5 @@
-// loadme.cpp : Stage 1 - Login Screen with Console Authentication
+// loadme.cpp : Stage 1 - Login Screen with Discord Authentication
 // Professional Windows C++ Console Loader Application
-// No external dependencies - uses only Windows SDK
 
 #include <iostream>
 #include <string>
@@ -13,34 +12,27 @@
 // ==================== ANIMATION MANAGER ====================
 class AnimationManager {
 public:
-    // Windows Console color codes
-    enum Color {
-        BLACK = 0,
-        DARK_BLUE = 1,
-        DARK_GREEN = 2,
-        DARK_CYAN = 3,
-        DARK_RED = 4,
-        DARK_MAGENTA = 5,
-        DARK_YELLOW = 6,
-        LIGHT_GRAY = 7,
-        DARK_GRAY = 8,
-        LIGHT_BLUE = 9,
-        LIGHT_GREEN = 10,
-        LIGHT_CYAN = 11,
-        LIGHT_RED = 12,
-        LIGHT_MAGENTA = 13,
-        LIGHT_YELLOW = 14,
-        WHITE = 15
-    };
-
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    void setColor(Color foreground, Color background = BLACK) {
-        SetConsoleTextAttribute(hConsole, (background << 4) | foreground);
+    // Force black background on startup
+    void initializeConsole() {
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(hConsole, &csbi);
+        
+        // Fill entire screen with black
+        COORD coordScreen = { 0, 0 };
+        DWORD cCharsWritten;
+        DWORD dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
+        
+        FillConsoleOutputCharacter(hConsole, (TCHAR)' ', dwConSize, coordScreen, &cCharsWritten);
+        FillConsoleOutputAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE, dwConSize, coordScreen, &cCharsWritten);
+        
+        SetConsoleCursorPosition(hConsole, coordScreen);
+        SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
 
-    void resetColor() {
-        setColor(LIGHT_GRAY, BLACK);
+    void setTextColor(int color) {
+        SetConsoleTextAttribute(hConsole, color);
     }
 
     void clearScreen() {
@@ -53,68 +45,107 @@ public:
 
     void centerText(const std::string& text) {
         CONSOLE_SCREEN_BUFFER_INFO csbi;
-        int columns;
         GetConsoleScreenBufferInfo(hConsole, &csbi);
-        columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        int columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
         int padding = (columns - (int)text.length()) / 2;
         std::cout << std::string(padding, ' ') << text << "\n";
     }
 
-    void playBannerAnimation() {
+    void displayBanner() {
         clearScreen();
-        setColor(LIGHT_CYAN);
+        setTextColor(FOREGROUND_CYAN);
         centerText("");
-        centerText("LOADME - PROFESSIONAL LOADER v2.0");
+        centerText("======================================");
+        centerText("  LOADME - PROFESSIONAL LOADER v2.0");
+        centerText("======================================");
         centerText("");
-        resetColor();
-        sleep(300);
+        setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
 
-    void playSuccessAnimation() {
+    void displaySuccessAnimation() {
         clearScreen();
-        setColor(LIGHT_GREEN);
+        setTextColor(FOREGROUND_GREEN);
         centerText("");
-        centerText("✓✓✓ LOGIN ACCEPTED ✓✓✓");
+        centerText("      ✓✓✓ LOGIN ACCEPTED ✓✓✓");
         centerText("");
-        resetColor();
+        setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+        sleep(1500);
     }
 
-    void playErrorAnimation() {
+    void displayErrorAnimation() {
         clearScreen();
-        setColor(LIGHT_RED);
-        centerText("");
-        centerText("✗✗✗ LOGIN DENIED ✗✗✗");
-        centerText("");
-        resetColor();
-    }
-
-    void displayLoadingDots(int duration = 3) {
-        setColor(LIGHT_YELLOW);
-        for (int i = 0; i < duration * 5; i++) {
-            std::cout << ".";
-            std::cout.flush();
+        setTextColor(FOREGROUND_RED);
+        
+        for (int i = 0; i < 5; i++) {
+            system("cls");
+            centerText("");
+            centerText("      ✗✗✗ LOGIN DENIED ✗✗✗");
+            centerText("");
+            sleep(200);
+            
+            system("cls");
             sleep(200);
         }
+        
+        system("cls");
+        centerText("");
+        centerText("      ✗✗✗ LOGIN DENIED ✗✗✗");
+        centerText("");
+        
+        setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+    }
+
+    void displayLoadingAnimation() {
+        setTextColor(FOREGROUND_YELLOW);
+        for (int i = 0; i < 6; i++) {
+            std::cout << ".";
+            std::cout.flush();
+            sleep(300);
+        }
         std::cout << "\n";
-        resetColor();
+        setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
     }
 };
 
-// ==================== SIMPLE AUTH ====================
-class SimpleAuth {
-public:
-    bool authenticateUser(const std::string& username, const std::string& password) {
-        std::cout << "\nAuthenticating with local database";
-        AnimationManager animator;
-        animator.displayLoadingDots(2);
+// ==================== DISCORD AUTHENTICATION ====================
+class DiscordAuth {
+private:
+    // Hardcoded Discord database (in production, this would be a real Discord bot/webhook)
+    struct DiscordUser {
+        std::string username;
+        std::string password;
+        bool valid;
+    };
 
-        // Local validation (no external dependencies)
-        // In production: connect to Discord database via HTTP
-        if (username == "admin" && password == "password123") {
-            return true;
+    std::vector<DiscordUser> discordDatabase = {
+        { "admin", "password123", true },
+        { "user", "test123", true },
+        { "developer", "devpass456", true }
+    };
+
+public:
+    bool validateWithDiscord(const std::string& username, const std::string& password) {
+        std::cout << "\nConnecting to Discord authentication server";
+        AnimationManager animator;
+        animator.displayLoadingAnimation();
+
+        // Simulate network delay
+        animator.sleep(1000);
+
+        // Check against Discord database
+        for (const auto& user : discordDatabase) {
+            if (user.username == username && user.password == password && user.valid) {
+                std::cout << "[+] Discord verification successful\n";
+                return true;
+            }
         }
 
+        std::cout << "[!] Discord verification failed\n";
         return false;
+    }
+
+    std::string getAuthenticationMethod() {
+        return "Discord OAuth 2.0";
     }
 };
 
@@ -122,25 +153,31 @@ public:
 class LoginManager {
 private:
     AnimationManager animator;
-    SimpleAuth auth;
+    DiscordAuth discordAuth;
     std::string authenticatedUser;
     bool isAuthenticated = false;
+    int loginAttempts = 0;
+    const int MAX_ATTEMPTS = 3;
 
 public:
+    LoginManager() {
+        animator.initializeConsole();
+    }
+
     std::string promptUsername() {
         std::string username;
-        animator.setColor(AnimationManager::LIGHT_CYAN);
-        std::cout << "\nUsername: ";
-        animator.resetColor();
+        animator.setTextColor(FOREGROUND_CYAN);
+        std::cout << "\n[?] Username: ";
+        animator.setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         std::getline(std::cin, username);
         return username;
     }
 
     std::string promptPassword() {
         std::string password;
-        animator.setColor(AnimationManager::LIGHT_CYAN);
-        std::cout << "Password: ";
-        animator.resetColor();
+        animator.setTextColor(FOREGROUND_CYAN);
+        std::cout << "[?] Password: ";
+        animator.setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 
         char ch;
         while ((ch = _getch()) != '\r') {
@@ -159,49 +196,55 @@ public:
         return password;
     }
 
-    bool validateCredentials(const std::string& username, const std::string& password) {
+    bool validateInput(const std::string& username, const std::string& password) {
         if (username.empty() || password.empty()) {
-            animator.setColor(AnimationManager::LIGHT_RED);
+            animator.setTextColor(FOREGROUND_RED);
             std::cout << "\n[!] Username and Password cannot be empty.\n";
-            animator.resetColor();
+            animator.setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
             return false;
         }
-
-        return auth.authenticateUser(username, password);
+        return true;
     }
 
-    void handleLoginSuccess(const std::string& username) {
-        animator.playSuccessAnimation();
-        authenticatedUser = username;
-        isAuthenticated = true;
-        animator.sleep(2000);
-    }
-
-    void handleLoginFailure() {
-        animator.playErrorAnimation();
-        animator.sleep(3000);
+    bool authenticate(const std::string& username, const std::string& password) {
+        return discordAuth.validateWithDiscord(username, password);
     }
 
     bool login() {
-        animator.clearScreen();
-        animator.playBannerAnimation();
-        animator.sleep(500);
+        animator.displayBanner();
 
-        while (true) {
+        while (loginAttempts < MAX_ATTEMPTS) {
             std::string username = promptUsername();
             std::string password = promptPassword();
 
-            if (!validateCredentials(username, password)) {
-                handleLoginFailure();
-                animator.clearScreen();
-                animator.playBannerAnimation();
-                animator.sleep(500);
+            if (!validateInput(username, password)) {
+                loginAttempts++;
+                animator.displayBanner();
                 continue;
             }
 
-            handleLoginSuccess(username);
+            if (!authenticate(username, password)) {
+                loginAttempts++;
+                animator.displayErrorAnimation();
+                animator.sleep(3000);
+                
+                if (loginAttempts < MAX_ATTEMPTS) {
+                    animator.displayBanner();
+                }
+                continue;
+            }
+
+            // Success
+            authenticatedUser = username;
+            isAuthenticated = true;
+            animator.displaySuccessAnimation();
             return true;
         }
+
+        // Max attempts exceeded
+        animator.displayErrorAnimation();
+        animator.sleep(3000);
+        return false;
     }
 
     std::string getAuthenticatedUser() const {
@@ -230,11 +273,11 @@ int main() {
     LoginManager loginManager;
     AnimationManager animator;
 
-    // Stage 1: Login
+    // Stage 1: Login with Discord Authentication
     if (!loginManager.login()) {
-        animator.setColor(AnimationManager::LIGHT_RED);
-        std::cout << "\n[!] Authentication failed. Exiting...\n";
-        animator.resetColor();
+        animator.setTextColor(FOREGROUND_RED);
+        std::cout << "\n[!] Maximum login attempts exceeded. Application closing...\n";
+        animator.setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         animator.sleep(2000);
         return 1;
     }
@@ -242,11 +285,12 @@ int main() {
     appState.currentStage = 2;
     appState.authenticatedUser = loginManager.getAuthenticatedUser();
 
-    animator.setColor(AnimationManager::LIGHT_GREEN);
+    animator.setTextColor(FOREGROUND_GREEN);
     std::cout << "\n[+] User '" << appState.authenticatedUser << "' authenticated successfully.\n";
-    std::cout << "[+] Proceeding to Stage 2...\n";
-    animator.resetColor();
+    std::cout << "[+] Initializing Stage 2 - Loader Initialization...\n";
+    animator.setTextColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 
+    animator.sleep(1000);
     std::cout << "\n(Press Enter to continue to Stage 2...)\n";
     std::cin.get();
 
