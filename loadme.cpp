@@ -15,6 +15,7 @@ class AnimationManager {
 public:
     // Windows Console color codes
     enum Color {
+        BLACK = 0,
         DARK_BLUE = 1,
         DARK_GREEN = 2,
         DARK_CYAN = 3,
@@ -34,12 +35,12 @@ public:
 
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    void setColor(Color foreground, Color background = DARK_GRAY) {
+    void setColor(Color foreground, Color background = BLACK) {
         SetConsoleTextAttribute(hConsole, (background << 4) | foreground);
     }
 
     void resetColor() {
-        setColor(LIGHT_GRAY, DARK_GRAY);
+        setColor(LIGHT_GRAY, BLACK);
     }
 
     void clearScreen() {
