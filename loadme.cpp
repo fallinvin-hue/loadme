@@ -34,12 +34,12 @@ public:
 
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    void setColor(Color foreground, Color background = DARK_BLUE) {
+    void setColor(Color foreground, Color background = DARK_GRAY) {
         SetConsoleTextAttribute(hConsole, (background << 4) | foreground);
     }
 
     void resetColor() {
-        setColor(LIGHT_GRAY, DARK_BLUE);
+        setColor(LIGHT_GRAY, DARK_GRAY);
     }
 
     void clearScreen() {
